@@ -22,19 +22,24 @@ $blob_name = basename($file_name);
 
 $block_list = new BlockList();
 
-define('CHUNK_SIZE', 4 * 1024 * 1024);
+define('CHUNK_SIZE', 4 * 1024 * 1024); //4 MiB
 
 try {
+    // Get the file
     $fptr = fopen($file_name, "rb");
     $index = 1;
     while (!feof($fptr)) {
+        // Define block id using Base64 Encode
         $block_id = base64_encode(str_pad($index, 6, "0", STR_PAD_LEFT));
         $block_list->addUncommittedEntry($block_id);
+        // Split file in chunks
         $data = fread($fptr, CHUNK_SIZE);
+        // Upload block
         $blobRestProxy->createBlobBlock($settings["container"], $blob_name, $block_id, $data);
         ++$index;
     }
-
+    
+    // Now committing block list
     $blobRestProxy->commitBlobBlocks($settings["container"], $blob_name, $block_list);
 } catch (ServiceException $e) {
     $code = $e->getCode();
